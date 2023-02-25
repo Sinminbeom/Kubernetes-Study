@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1
+spec:
+  selector:
+    matchLabels:
+      type: app
+  replicas: 2
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        type: app
+    spec:
+      containers:
+      - name: container
+        image: kubetm/app:v1
+      terminationGracePeriodSeconds: 10
