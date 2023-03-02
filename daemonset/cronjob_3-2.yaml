@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-job-2
+spec:
+  schedule: "57,58,59 * * * *"
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: container
+            image: kubetm/init
+            command: ["sh", "-c", "echo 'job start';sleep 140; echo 'job end'"]
+          terminationGracePeriodSeconds: 0
