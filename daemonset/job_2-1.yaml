@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-1
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: container
+        image: kubetm/init
+        command: ["sh", "-c", "echo 'job start';sleep 20; echo 'job end'"]
+      terminationGracePeriodSeconds: 0
