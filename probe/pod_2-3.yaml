@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-liveness-httpget1
+  labels:
+    app: liveness
+spec:
+  containers:
+  - name: liveness
+    image: kubetm/app
+    ports:
+    - containerPort: 8080
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      failureThreshold: 3
+  terminationGracePeriodSeconds: 0
