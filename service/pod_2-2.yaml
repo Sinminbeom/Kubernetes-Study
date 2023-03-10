@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod4
+  labels:
+    svc: headless
+spec:
+  hostname: pod-a
+  subdomain: headless1
+  containers:
+  - name: container
+    image: kubetm/app

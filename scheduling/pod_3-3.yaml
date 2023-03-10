@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: pod-with-toleration
+spec:
+ nodeSelector:
+  gpu: no1
+ tolerations:
+ - effect: NoSchedule
+   key: hw
+   operator: Equal
+   value: gpu
+ containers:
+ - name: container
+   image: kubetm/app
+ terminationGracePeriodSeconds: 0

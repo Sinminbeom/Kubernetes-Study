@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: pod-match-expressions1
+spec:
+ affinity:
+  nodeAffinity:
+   requiredDuringSchedulingIgnoredDuringExecution:   
+    nodeSelectorTerms:
+    - matchExpressions:
+      -  {key: kr, operator: Exists}
+ containers:
+ - name: container
+   image: kubetm/app
+ terminationGracePeriodSeconds: 0

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: slave
+spec:
+ affinity:
+  podAntiAffinity:
+   requiredDuringSchedulingIgnoredDuringExecution:   
+   - topologyKey: a-team
+     labelSelector:
+      matchExpressions:
+      -  {key: type, operator: In, values: [master]}
+ containers:
+ - name: container
+   image: kubetm/app
+ terminationGracePeriodSeconds: 0

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: pod-without-toleration
+spec:
+ nodeSelector:
+  gpu: no1
+ containers:
+ - name: container
+   image: kubetm/app
+ terminationGracePeriodSeconds: 0

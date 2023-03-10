@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web2
+  labels:
+     type: web2
+spec:
+  nodeSelector:
+    a-team: '2'
+  containers:
+  - name: container
+    image: kubetm/app
+  terminationGracePeriodSeconds: 0

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod7
+  labels:
+    svc: endpoint
+spec:
+  containers:
+  - name: container
+    image: kubetm/app
