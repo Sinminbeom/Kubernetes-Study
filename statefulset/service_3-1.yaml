@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-headless
+spec:
+  selector:
+    type: db2
+  ports:
+    - port: 80
+      targetPort: 8080    
+  clusterIP: None

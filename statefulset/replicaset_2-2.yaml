@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replica-pvc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      type: web2
+  template:
+    metadata:
+      labels:
+        type: web2
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-node1
+      containers:
+      - name: container
+        image: kubetm/init
+        volumeMounts:
+        - name: storageos
+          mountPath: /applog
+      volumes:
+      - name: storageos
+        persistentVolumeClaim:
+          claimName: replica-pvc1

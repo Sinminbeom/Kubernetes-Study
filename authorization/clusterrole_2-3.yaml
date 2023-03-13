@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cr-02
+rules:
+- apiGroups: ["*"]
+  verbs: ["*"]
+  resources: ["*"]

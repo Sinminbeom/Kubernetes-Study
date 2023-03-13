@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: stateless-memory1
+spec:
+ selector:
+   matchLabels:
+      resource: memory
+ replicas: 2
+ template:
+   metadata:
+     labels:
+       resource: memory
+   spec:
+     containers:
+     - name: container
+       image: kubetm/app:v1
+       resources:
+         requests:
+           memory: 10Mi
+         limits:
+           memory: 20Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: stateless-svc2
+spec:
+ selector:
+    resource: memory
+ ports:
+   - port: 8080
+     targetPort: 8080
+     nodePort: 30002
+ type: NodePort

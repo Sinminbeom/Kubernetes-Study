@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa-02
+  namespace: nm-02
+secrets:
+  - name: default-token

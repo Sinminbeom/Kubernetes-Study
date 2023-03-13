@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: stateless-cpu1
+spec:
+ selector:
+   matchLabels:
+      resource: cpu
+ replicas: 2
+ template:
+   metadata:
+     labels:
+       resource: cpu
+   spec:
+     containers:
+     - name: container
+       image: kubetm/app:v1
+       resources:
+         requests:
+           cpu: 10m
+         limits:
+           cpu: 20m
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: stateless-svc1
+spec:
+ selector:
+    resource: cpu
+ ports:
+   - port: 8080
+     targetPort: 8080
+     nodePort: 30001
+ type: NodePort
