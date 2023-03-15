@@ -38,12 +38,6 @@ curl -s https://get.docker.com/ | sudo sh
 
 sudo usermod -aG docker oracle
 
-# SELinux 설정
-setenforce 0
-sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-# Current mode:permissive 내용확인
-sestatus 
-
 # 방화벽 해제
 systemctl stop firewalld && systemctl disable firewalld
 
