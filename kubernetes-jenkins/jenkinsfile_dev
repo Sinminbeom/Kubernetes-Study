@@ -1,0 +1,104 @@
+pipeline {
+    agent any
+    
+    environment {
+
+        TAG = "dev"
+
+        PROJECT_GROUP = "control"
+        PROJECT_NAME = "kubernetes-jenkins-test-${TAG}"
+        GIT_URI= "https://adtc.swm.ai/gitlab/mbshin/kubernetes-jenkins-test.git"
+        GIT_CREDENTIAL_ID= "mbshin"
+        BUILD_DISPLAY_NAME= "Depoly-${PROJECT_NAME}"
+
+        DOCKER_REGISTRY = "adtc.swm.ai:5000"
+		DOCKER_TAG = "1.0.${currentBuild.number}"
+		DOCKER_REGISTRY_CREDENTIAL = "ywkim1_rladyddn"
+
+        DOCKER_URL = "${DOCKER_REGISTRY}/${PROJECT_GROUP}"
+
+
+        REMOTE_PATH= "infra_glue/${PROJECT_NAME}"
+        REMOTE_SERVICE_PATH= "apollo/service/${REMOTE_PATH}"
+        DEPOLY_LOG_FILE_NM= "depoly.log"
+    }
+
+    parameters {
+        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'main', name: 'BRANCH', type: 'PT_BRANCH', sortMode: 'DESCENDING_SMART', listSize: '5'
+    }
+
+    stages {
+        stage('git clone') {
+            steps {
+                git branch: "${params.BRANCH}",
+                credentialsId: "${GIT_CREDENTIAL_ID}",
+                url: "${GIT_URI}"
+            }
+        }
+
+        stage('Docker build') {
+            steps {
+
+                sh "docker build -f ./depoly/${TAG}/Dockerfile -t ${DOCKER_REGISTRY}/${PROJECT_GROUP}/${PROJECT_NAME}:${DOCKER_TAG} ."
+
+                sh "sed -i 's/<DOCKER_REPOSITY>/${DOCKER_REGISTRY}\\/${PROJECT_GROUP}/g' ./depoly/${TAG}/jenkins_deploy.yaml"
+                sh "sed -i 's/<PROJECT_NAME>/${PROJECT_NAME}/g' ./depoly/${TAG}/jenkins_deploy.yaml"
+                sh "sed -i 's/<TAG>/${TAG}/g' ./depoly/${TAG}/jenkins_deploy.yaml"
+                sh "sed -i 's/<BUILD_VER>/${DOCKER_TAG}/g' ./depoly/${TAG}/jenkins_deploy.yaml"
+            }
+        }
+
+        stage('Docker Image Push'){
+            steps{
+                withDockerRegistry(credentialsId: "${DOCKER_REGISTRY_CREDENTIAL}", url: "https://${DOCKER_REGISTRY}") {
+                    echo "${DOCKER_REGISTRY_CREDENTIAL}"
+                    echo "${DOCKER_REGISTRY}"
+                    sh "docker push ${DOCKER_REGISTRY}/${PROJECT_GROUP}/${PROJECT_NAME}:${DOCKER_TAG}"
+                }
+            }
+        }
+
+        stage('Ssh transfer and Deploy to kubernetes') {
+            steps{
+                sshPublisher(publishers: [sshPublisherDesc(configName: 'server_250_test',
+                transfers: [
+                    sshTransfer(cleanRemote: false, excludes: '',
+                    execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+',
+                    remoteDirectory: "${REMOTE_PATH}",
+                    remoteDirectorySDF: false,
+                    removePrefix: "depoly/${TAG}",
+                    sourceFiles: "depoly/${TAG}/jenkins_deploy.yaml") ,
+
+                    sshTransfer(
+                        execCommand: """
+                            cd ${REMOTE_SERVICE_PATH}
+                            kubectl apply -f jenkins_deploy.yaml
+                            echo \"kubectl apply -f jenkins_deploy.yaml\" >> jenkins.log
+                            echo \"depoly end\" >> jenkins.log
+                        """
+                        )
+
+                    ],
+                    usePromotionTimestamp: false,
+                    useWorkspaceInPromotion: false, verbose: false)])
+            }
+        }
+    }
+
+    post{
+        success{
+            echo "success"
+            slackSend (channel: "#jenkins", color: '#00FF00', message: "${PROJECT_NAME} (${params.BRANCH}) - ${BUILD_DISPLAY_NAME} Success" )
+        }
+        failure{
+            echo "fail!!"
+            slackSend (channel: "#jenkins", color: '#FF0000', message: "${PROJECT_NAME} (${params.BRANCH}) - ${BUILD_DISPLAY_NAME} Failed" )
+        }
+        unstable{
+            echo "UnStable!!"
+            slackSend (channel: "#jenkins", color: '#FF0000', message: "${PROJECT_NAME} (${params.BRANCH}) - ${BUILD_DISPLAY_NAME} Failed" )
+        }
+    }
+
+
+}
