@@ -2,10 +2,10 @@
 network:
   ethernets:
     enp0s3:
-      addresses: [192.168.0.10/24]
-      gateway4: 192.168.0.1
+      addresses: [192.168.1.240/24]
+      gateway4: 192.168.1.1
       nameservers:
-        addresses: [8.8.8.8, 8.8.4.4]
+        addresses: [*****, ****]
   version: 2
 
 # 적용
@@ -46,9 +46,9 @@ swapoff -a && sed -i '/ swap / s/^/#/' /etc/fstab
 
 # 계획된 ip 등록
 cat << EOF >> /etc/hosts
-192.168.10.250 k8s-master
-192.168.10.251 k8s-node1
-192.168.10.252 k8s-node2
+192.168.1.240 k8s-master
+192.168.1.241 k8s-node1
+192.168.1.242 k8s-node2
 EOF
 
 cat <<EOF >  /etc/sysctl.d/k8s.conf
@@ -63,8 +63,8 @@ echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https:/
 # 도커 GPG key 추가
 curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
 
-apt-get update
-apt-get install -y kubelet kubeadm kubectl
+apt update
+apt install -y kubelet kubeadm kubectl
 
 mkdir /etc/docker
 cat > /etc/docker/daemon.json <<EOF
@@ -91,4 +91,54 @@ systemctl enable --now kubelet
 sudo rm /etc/containerd/config.toml
 sudo systemctl restart containerd
 
-kubeadm init --pod-network-cidr=20.96.0.0/12 --apiserver-advertise-address=192.168.10.250
+kubeadm init --pod-network-cidr=20.96.0.0/12 --apiserver-advertise-address=192.168.1.240
+
+# node에만 실행
+kubeadm join 192.168.1.240:6443 --token gu5s1v.18p8fhrajc1v3qyu \
+	--discovery-token-ca-cert-hash sha256:fa13df9297a08c91499b0eaf9179b6e3864170607f1e19c50b2ad814e252f5fd
+
+# 다시 마스터만 실행
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+curl -O https://projectcalico.docs.tigera.io/v3.19/manifests/calico.yaml
+sed s/192.168.0.0\\/16/20.96.0.0\\/12/g -i calico.yaml
+kubectl apply -f calico.yaml
+
+# 대쉬보드 설치
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.6.1/aio/deploy/recommended.yaml
+
+nohup kubectl proxy --port=8001 --address=192.168.1.240 --accept-hosts='^*$' >/dev/null 2>&1 &
+
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+# 대쉬보드 외부 접속 방법(type을 nodeport로 변경)
+kubectl -n kubernetes-dashboard edit service kubernetes-dashboard
+
+# nodeport 확인
+kubectl -n kubernetes-dashboard get service kubernetes-dashboard 
+
+# https로 접속
+https://192.168.1.240:30886
+
+# ServiceAccount, ClusterRoleBinding, Secret 생성
+kubectl apply -f dashboard-user.yaml
+
+# token 확인
+kubectl describe secret default-token -n kubernetes-dashboard
+
+# token 제한시간 무제한
+kubectl edit -n kubernetes-dashboard deployments.apps kubernetes-dashboard
+
+# ... content before...
+
+    spec:
+      containers:
+      - args:
+        - --auto-generate-certificates
+        - --namespace=kubernetes-dashboard
+        - --token-ttl=0 # <-- 이걸 추가
+      image: kubernetesui/dashboard:v2.6.0
+
+# ... content after ...
